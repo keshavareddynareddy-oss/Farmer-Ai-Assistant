@@ -1,5 +1,5 @@
 ﻿import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:crop_price_predictor/l10n/app_localizations.dart';
 
 import '../../core/utils/helpers.dart';
 import '../../models/dashboard_summary_model.dart';
@@ -54,14 +54,18 @@ class _HomeScreenState extends State<HomeScreen> {
   SoilRecommendationModel? _soilRecommendation;
   String? _soilError;
   bool _loadingSoil = false;
-  List<String> _soilCropAdvice = [];
 
-  final ValueNotifier<_HomeTab> _tab = ValueNotifier<_HomeTab>(_HomeTab.dashboard);
+  final ValueNotifier<_HomeTab> _tab =
+      ValueNotifier<_HomeTab>(_HomeTab.dashboard);
 
   @override
   void initState() {
     super.initState();
-    _load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _load();
+      }
+    });
   }
 
   @override
@@ -78,6 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _load() async {
+    final auth = AuthScope.of(context);
     setState(() {
       _loading = true;
       _error = null;
@@ -86,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final locationResult = await _location.getCurrentLocation();
       final location = locationResult.location;
-      final auth = AuthScope.of(context);
       final cropWatchOverview = (auth.user ?? '').trim().isNotEmpty
           ? await _api.fetchCropWatchOverview(
               username: auth.user!.trim(),
@@ -101,7 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
               .map((item) => Map<String, dynamic>.from(item))
               .toList()
               .isNotEmpty)
-          ? (((cropWatchOverview['watches'] as List<dynamic>?) ?? const <dynamic>[])
+          ? (((cropWatchOverview['watches'] as List<dynamic>?) ??
+                  const <dynamic>[])
               .whereType<Map>()
               .map((item) => Map<String, dynamic>.from(item))
               .toList()
@@ -186,20 +191,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _soilRecommendation = result;
-        _soilCropAdvice = (result as dynamic).cropAdvice is List
-            ? ((result as dynamic).cropAdvice as List)
-                .whereType<String>()
-                .map((item) => item.trim())
-                .where((item) => item.isNotEmpty)
-                .toList()
-            : [];
       });
     } catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _soilError = '${AppLocalizations.of(context).errorUnableFetchSoil}: $error';
+        _soilError =
+            '${AppLocalizations.of(context).errorUnableFetchSoil}: $error';
         _soilRecommendation = null;
       });
     } finally {
@@ -211,10 +210,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _dateLine(BuildContext context) {
-    return MaterialLocalizations.of(context).formatFullDate(DateTime.now());
-  }
-
   String? _currentTrackedCropName() {
     final watches = _trackedWatches();
     if (watches.isEmpty) {
@@ -224,7 +219,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<Map<String, dynamic>> _trackedWatches() {
-    return (_cropWatchOverview?['watches'] as List<dynamic>? ?? const <dynamic>[])
+    return (_cropWatchOverview?['watches'] as List<dynamic>? ??
+            const <dynamic>[])
         .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
@@ -274,7 +270,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return null;
     }
     return snapshot.nearestMarkets.reduce(
-      (current, next) => next.currentPrice > current.currentPrice ? next : current,
+      (current, next) =>
+          next.currentPrice > current.currentPrice ? next : current,
     );
   }
 
@@ -339,88 +336,6 @@ class _HomeScreenState extends State<HomeScreen> {
         _tab.value = _HomeTab.prices;
         return;
     }
-  }
-
-  Widget _sectionHeader(String title, String subtitle) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: const TextStyle(
-            color: Color(0xFF617080),
-            height: 1.45,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _journeyCard({
-    required IconData icon,
-    required Color accent,
-    required String title,
-    required String description,
-    required String actionLabel,
-    required VoidCallback onPressed,
-  }) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: accent),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        color: Color(0xFF617080),
-                        height: 1.45,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: onPressed,
-                      child: Text(actionLabel),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 
   List<String> _todayGuidance(DashboardSummaryModel? summary) {
@@ -561,13 +476,63 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final bestMarket = snapshot.nearestMarkets.reduce(
-      (current, next) => next.currentPrice > current.currentPrice ? next : current,
+      (current, next) =>
+          next.currentPrice > current.currentPrice ? next : current,
     );
     final distanceText = bestMarket.distanceKm == null
         ? 'nearby'
         : '${bestMarket.distanceKm!.toStringAsFixed(1)} km away';
 
     return 'Best nearby market: ${bestMarket.market} at ${Helpers.formatCurrency(bestMarket.currentPrice)} ($distanceText). ${bestMarket.recommendation}';
+  }
+
+  ({Color upper, Color lower, Color furrow}) _heroPalette({
+    required String stage,
+    required bool hasCrop,
+    required bool readyToSell,
+  }) {
+    if (readyToSell) {
+      return (
+        upper: const Color(0xFF713E2C),
+        lower: const Color(0xFFB9603D),
+        furrow: const Color(0xFFFFD09A),
+      );
+    }
+
+    if (!hasCrop) {
+      return (
+        upper: const Color(0xFF294F3B),
+        lower: const Color(0xFF52764D),
+        furrow: const Color(0xFFB8CE9D),
+      );
+    }
+
+    switch (stage) {
+      case 'early_growth':
+        return (
+          upper: const Color(0xFF244C3A),
+          lower: const Color(0xFF397A52),
+          furrow: const Color(0xFFB8D69D),
+        );
+      case 'flowering':
+        return (
+          upper: const Color(0xFF36553A),
+          lower: const Color(0xFF7D8050),
+          furrow: const Color(0xFFE3D08A),
+        );
+      case 'pre_harvest':
+        return (
+          upper: const Color(0xFF59452D),
+          lower: const Color(0xFFA57938),
+          furrow: const Color(0xFFF0D18B),
+        );
+      default:
+        return (
+          upper: const Color(0xFF28513C),
+          lower: const Color(0xFF557345),
+          furrow: const Color(0xFFC2D4A1),
+        );
+    }
   }
 
   double _harvestQuantity() {
@@ -627,7 +592,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (snapshot != null && snapshot.nearestMarkets.isNotEmpty) {
-      final prices = snapshot.nearestMarkets.map((item) => item.currentPrice).toList();
+      final prices =
+          snapshot.nearestMarkets.map((item) => item.currentPrice).toList();
       final maxPrice = prices.reduce((a, b) => a > b ? a : b);
       final minPrice = prices.reduce((a, b) => a < b ? a : b);
       final spread = maxPrice - minPrice;
@@ -668,7 +634,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (!readyToSell) {
-      if (stage == 'pre_harvest' || (daysToHarvest != null && daysToHarvest <= 14)) {
+      if (stage == 'pre_harvest' ||
+          (daysToHarvest != null && daysToHarvest <= 14)) {
         return 'Wait';
       }
       if (stage == 'early_growth' ||
@@ -683,7 +650,8 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (snapshot != null && snapshot.nearestMarkets.isNotEmpty) {
-      final prices = snapshot.nearestMarkets.map((item) => item.currentPrice).toList();
+      final prices =
+          snapshot.nearestMarkets.map((item) => item.currentPrice).toList();
       final maxPrice = prices.reduce((a, b) => a > b ? a : b);
       final minPrice = prices.reduce((a, b) => a < b ? a : b);
       if (maxPrice - minPrice >= 12) {
@@ -748,9 +716,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         Text(
                           title,
-                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                         ),
                         const SizedBox(height: 8),
                         Text(
@@ -817,7 +786,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _weatherWatchText(DashboardSummaryModel? summary, Map<String, dynamic>? watch) {
+  String _weatherWatchText(
+      DashboardSummaryModel? summary, Map<String, dynamic>? watch) {
     final weather = summary?.weatherForecast;
     final stage = (watch?['stage'] ?? '').toString().toLowerCase();
     if (weather == null || weather.isEmpty) {
@@ -836,7 +806,9 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       return 'Rain is likely soon, so delay spraying and protect harvested produce from moisture.';
     }
-    if (iconKey == 'storm' || iconKey == 'wind' || condition.contains('storm')) {
+    if (iconKey == 'storm' ||
+        iconKey == 'wind' ||
+        condition.contains('storm')) {
       if (stage == 'ready_to_sell') {
         return 'Wind or storm risk is present, so avoid moving harvested produce until travel is safe.';
       }
@@ -865,71 +837,90 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final parts = <String>[];
     if (ph < 6) {
-      parts.add('Soil looks acidic, so avoid over-fertilizing until pH is reviewed.');
+      parts.add(
+          'Soil looks acidic, so avoid over-fertilizing until pH is reviewed.');
     } else if (ph > 7.5) {
-      parts.add('Soil looks alkaline, so nutrient uptake may be reduced for some crops.');
+      parts.add(
+          'Soil looks alkaline, so nutrient uptake may be reduced for some crops.');
     } else {
       parts.add('Soil pH is in a workable range for many crops.');
     }
 
     if (moisture < 25) {
-      parts.add('Moisture is low, so irrigation planning should be checked soon.');
+      parts.add(
+          'Moisture is low, so irrigation planning should be checked soon.');
     } else if (moisture > 65) {
-      parts.add('Moisture is high, so drainage and disease risk should be watched.');
+      parts.add(
+          'Moisture is high, so drainage and disease risk should be watched.');
     } else {
       parts.add('Moisture is moderate, which is usually easier to manage.');
     }
 
     if (nitrogen < 25 || phosphorus < 20 || potassium < 120) {
-      parts.add('One or more nutrients look low, so use the soil tab before fertilizer decisions.');
+      parts.add(
+          'One or more nutrients look low, so use the soil tab before fertilizer decisions.');
     }
 
     if (organicMatter < 2) {
-      parts.add('Organic matter is low, so soil health support may be needed over time.');
+      parts.add(
+          'Organic matter is low, so soil health support may be needed over time.');
     }
 
     if (stage == 'flowering' && moisture < 35) {
-      parts.add('Flowering crops are more sensitive to dry soil, so watch moisture closely this week.');
+      parts.add(
+          'Flowering crops are more sensitive to dry soil, so watch moisture closely this week.');
     }
     if (stage == 'ready_to_sell') {
-      parts.add('The crop is close to selling, so avoid unnecessary soil stress and field damage now.');
+      parts.add(
+          'The crop is close to selling, so avoid unnecessary soil stress and field damage now.');
     }
 
     return parts.join(' ');
   }
 
-  List<String> _soilCropAdvice(Map<String, dynamic>? watch) {
+  List<String> _cropSpecificSoilAdvice(Map<String, dynamic>? watch) {
     final cropName = (watch?['crop_name'] ?? '').toString().toLowerCase();
     final stage = (watch?['stage'] ?? '').toString().toLowerCase();
     final advice = <String>[];
 
     if (cropName.contains('rice') || cropName.contains('paddy')) {
-      advice.add('Rice and paddy crops usually prefer steadier moisture, so avoid letting the field dry for long.');
+      advice.add(
+          'Rice and paddy crops usually prefer steadier moisture, so avoid letting the field dry for long.');
       if (stage == 'early_growth' || stage == 'vegetative') {
-        advice.add('During early growth, keep weed pressure and water balance under close watch.');
+        advice.add(
+            'During early growth, keep weed pressure and water balance under close watch.');
       }
     } else if (cropName.contains('wheat')) {
-      advice.add('Wheat benefits from balanced nutrition and moderate moisture during active growth.');
+      advice.add(
+          'Wheat benefits from balanced nutrition and moderate moisture during active growth.');
       if (stage == 'flowering' || stage == 'pre_harvest') {
-        advice.add('At flowering or grain fill, avoid heat and water stress where possible.');
+        advice.add(
+            'At flowering or grain fill, avoid heat and water stress where possible.');
       }
     } else if (cropName.contains('maize') || cropName.contains('corn')) {
-      advice.add('Maize responds well to timely nitrogen support and enough moisture before tasseling.');
+      advice.add(
+          'Maize responds well to timely nitrogen support and enough moisture before tasseling.');
       if ((double.tryParse(_nitrogenController.text) ?? 0) < 35) {
-        advice.add('Nitrogen looks a little low for maize, so review top-dressing timing.');
+        advice.add(
+            'Nitrogen looks a little low for maize, so review top-dressing timing.');
       }
     } else if (cropName.contains('cotton')) {
-      advice.add('Cotton usually needs careful moisture balance and should not stay waterlogged.');
+      advice.add(
+          'Cotton usually needs careful moisture balance and should not stay waterlogged.');
       if ((double.tryParse(_moistureController.text) ?? 0) > 60) {
-        advice.add('Moisture looks high for cotton, so drainage and disease risk should be watched.');
+        advice.add(
+            'Moisture looks high for cotton, so drainage and disease risk should be watched.');
       }
     } else if (cropName.contains('tomato') || cropName.contains('potato')) {
-      advice.add('Vegetable crops like tomato and potato benefit from steady moisture and strong disease monitoring.');
+      advice.add(
+          'Vegetable crops like tomato and potato benefit from steady moisture and strong disease monitoring.');
       if ((double.tryParse(_organicMatterController.text) ?? 0) < 2) {
-        advice.add('Organic matter is low, so soil structure support may help these crops.');
+        advice.add(
+            'Organic matter is low, so soil structure support may help these crops.');
       }
     } else if (cropName.contains('soy')) {
-      advice.add('Soybean usually benefits from well-drained soil and balanced phosphorus support.');
+      advice.add(
+          'Soybean usually benefits from well-drained soil and balanced phosphorus support.');
     }
 
     return advice;
@@ -938,14 +929,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    const stageLegend = [
-      ('early_growth', 'Early growth'),
-      ('vegetative', 'Vegetative'),
-      ('flowering', 'Flowering'),
-      ('pre_harvest', 'Pre-harvest'),
-      ('ready_to_sell', 'Ready to sell'),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
@@ -1055,13 +1038,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final l10n = AppLocalizations.of(context);
     final summary = _summary;
     final cropWatch = _cropWatchOverview;
-    final watches = (cropWatch?['watches'] as List<dynamic>? ?? const <dynamic>[])
-        .whereType<Map>()
-        .map((item) => Map<String, dynamic>.from(item))
-        .toList();
+    final watches =
+        (cropWatch?['watches'] as List<dynamic>? ?? const <dynamic>[])
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
     final primaryWatch = watches.isNotEmpty ? watches.first : null;
     final stage = _normalizeStage(primaryWatch?['stage']?.toString());
-    final stageLabel = (primaryWatch?['crop_stage_label'] ?? primaryWatch?['stage'] ?? 'No crop track').toString();
+    final stageLabel = (primaryWatch?['crop_stage_label'] ??
+            primaryWatch?['stage'] ??
+            'No crop track')
+        .toString();
     final readyToSell = (primaryWatch?['is_sell_ready'] as bool?) == true;
     final heroTitle = primaryWatch == null
         ? 'Farmer command center'
@@ -1069,6 +1056,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final heroSubtitle = primaryWatch == null
         ? 'Plan what to sow, watch the season, and choose the right time to sell.'
         : 'Your crop, weather, and market guidance in one daily view.';
+    final heroPalette = _heroPalette(
+      stage: stage,
+      hasCrop: primaryWatch != null,
+      readyToSell: readyToSell,
+    );
     const stageLegend = [
       ('early_growth', 'Early growth'),
       ('vegetative', 'Vegetative'),
@@ -1080,31 +1072,31 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListView(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: Container(
-            decoration: const BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 650),
+            curve: Curves.easeInOutCubic,
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-              colors: [
-                  Color(0xFF35261C),
-                  Color(0xFF6B4A31),
-                  Color(0xFF8B6A4D),
-                ],
+                colors: [heroPalette.upper, heroPalette.lower],
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x332E7D32),
-                  blurRadius: 22,
-                  offset: Offset(0, 12),
+                  color: heroPalette.upper.withValues(alpha: 0.18),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
                 ),
               ],
             ),
             child: Stack(
               children: [
-                const Positioned.fill(
+                Positioned.fill(
                   child: CustomPaint(
-                    painter: _FarmBackdropPainter(),
+                    painter: _FarmBackdropPainter(
+                      furrowColor: heroPalette.furrow,
+                    ),
                   ),
                 ),
                 Padding(
@@ -1125,8 +1117,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                     shape: BoxShape.circle,
                                     gradient: RadialGradient(
                                       colors: [
-                                        const Color(0xFFFFE7C6).withValues(alpha: 0.45),
-                                        const Color(0xFFD9B48F).withValues(alpha: 0.18),
+                                        const Color(0xFFFFE7C6)
+                                            .withValues(alpha: 0.45),
+                                        const Color(0xFFD9B48F)
+                                            .withValues(alpha: 0.18),
                                         Colors.transparent,
                                       ],
                                       stops: const [0.0, 0.58, 1.0],
@@ -1245,10 +1239,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-          children: _todayGuidance(summary)
-              .take(3)
-              .map(_guidanceBullet)
-              .toList(),
+          children:
+              _todayGuidance(summary).take(3).map(_guidanceBullet).toList(),
         ),
         const SizedBox(height: 18),
         _sectionCard(
@@ -1267,9 +1259,9 @@ class _HomeScreenState extends State<HomeScreen> {
               text: _soilWatchText(primaryWatch),
             ),
             const SizedBox(height: 6),
-            if (_soilCropAdvice(primaryWatch).isNotEmpty)
+            if (_cropSpecificSoilAdvice(primaryWatch).isNotEmpty)
               Wrap(
-                children: _soilCropAdvice(primaryWatch)
+                children: _cropSpecificSoilAdvice(primaryWatch)
                     .take(3)
                     .map(_adviceChip)
                     .toList(),
@@ -1296,23 +1288,27 @@ class _HomeScreenState extends State<HomeScreen> {
             else ...[
               Row(
                 children: [
-                  _adviceChip('Plant age: ${_plantAgeDays(primaryWatch)?.toString() ?? 'N/A'} days'),
-                  _adviceChip('To harvest: ${_daysUntilHarvest(primaryWatch)?.toString() ?? 'N/A'}'),
+                  _adviceChip(
+                      'Plant age: ${_plantAgeDays(primaryWatch)?.toString() ?? 'N/A'} days'),
+                  _adviceChip(
+                      'To harvest: ${_daysUntilHarvest(primaryWatch)?.toString() ?? 'N/A'}'),
                   _adviceChip('Sell ready: ${readyToSell ? 'yes' : 'no'}'),
                 ],
               ),
               const SizedBox(height: 6),
-              ...((primaryWatch['advisories'] as List<dynamic>? ?? const <dynamic>[])
+              ...((primaryWatch['advisories'] as List<dynamic>? ??
+                      const <dynamic>[])
                   .whereType<Map>()
                   .map((item) => Map<String, dynamic>.from(item))
                   .take(2)
-                    .map(
-                      (item) => _adviceLine(
-                        icon: Icons.info_outline,
+                  .map(
+                    (item) => _adviceLine(
+                      icon: Icons.info_outline,
                       iconColor: const Color(0xFF7A4E2D),
-                      text: '${item['title'] ?? 'Update'}: ${item['summary'] ?? ''}',
-                      ),
-                    )),
+                      text:
+                          '${item['title'] ?? 'Update'}: ${item['summary'] ?? ''}',
+                    ),
+                  )),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
@@ -1320,9 +1316,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: stageLegend
                     .map(
                       (entry) => Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: entry.$1 == stage ? const Color(0xFFE8D4B1) : const Color(0xFFF6EBDD),
+                          color: entry.$1 == stage
+                              ? const Color(0xFFE8D4B1)
+                              : const Color(0xFFF6EBDD),
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(color: const Color(0xFFD9C3A1)),
                         ),
@@ -1331,7 +1330,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             color: Colors.brown.shade700,
                             fontSize: 12,
-                            fontWeight: entry.$1 == stage ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight: entry.$1 == stage
+                                ? FontWeight.w700
+                                : FontWeight.w500,
                           ),
                         ),
                       ),
@@ -1366,7 +1367,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 4),
             TextField(
               controller: _harvestQtyController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
               decoration: InputDecoration(
                 labelText: 'Estimated harvest quantity',
                 hintText: 'e.g. 1200',
@@ -1388,11 +1390,13 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: _sellSignalColor().withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: _sellSignalColor().withValues(alpha: 0.35)),
+                    border: Border.all(
+                        color: _sellSignalColor().withValues(alpha: 0.35)),
                   ),
                   child: Text(
                     _sellSignalText(),
@@ -1447,15 +1451,18 @@ class _HomeScreenState extends State<HomeScreen> {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _adviceChip('Total harvest: ${_harvestQuantity().toStringAsFixed(0)}'),
-                      _adviceChip('Stock left: ${_harvestQuantity().toStringAsFixed(0)}'),
+                      _adviceChip(
+                          'Total harvest: ${_harvestQuantity().toStringAsFixed(0)}'),
+                      _adviceChip(
+                          'Stock left: ${_harvestQuantity().toStringAsFixed(0)}'),
                       _adviceChip(
                         'Estimated market value: ${() {
                           final bestMarket = _bestSellMarketItem();
                           if (bestMarket == null) {
                             return l10n.valueNA;
                           }
-                          return Helpers.formatCurrency(bestMarket.currentPrice * _harvestQuantity());
+                          return Helpers.formatCurrency(
+                              bestMarket.currentPrice * _harvestQuantity());
                         }()}',
                       ),
                     ],
@@ -1465,7 +1472,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     value: _sellConfidenceScore() / 100,
                     minHeight: 8,
                     backgroundColor: const Color(0xFFE7D5B8),
-                    valueColor: AlwaysStoppedAnimation<Color>(_sellSignalColor()),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(_sellSignalColor()),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   const SizedBox(height: 8),
@@ -1480,7 +1488,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            if (_sellSnapshot != null && _sellSnapshot!.nearestMarkets.isNotEmpty) ...[
+            if (_sellSnapshot != null &&
+                _sellSnapshot!.nearestMarkets.isNotEmpty) ...[
               const SizedBox(height: 2),
               Wrap(
                 children: _sellSnapshot!.nearestMarkets
@@ -1573,7 +1582,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         summary?.weatherSource == 'fallback'
                             ? l10n.homeWeatherFallbackNote
                             : l10n.homeWeatherLiveNote,
-                        style: const TextStyle(color: Color(0xFF726456), height: 1.5),
+                        style: const TextStyle(
+                            color: Color(0xFF726456), height: 1.5),
                       ),
                       const SizedBox(height: 12),
                       ...?summary?.weatherForecast.map(
@@ -1649,7 +1659,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: FilledButton(
                       onPressed: _loadingSoil ? null : _submitSoil,
                       child: Text(
-                        _loadingSoil ? l10n.soilSubmitting : l10n.soilGetRecommendations,
+                        _loadingSoil
+                            ? l10n.soilSubmitting
+                            : l10n.soilGetRecommendations,
                       ),
                     ),
                   ),
@@ -1925,10 +1937,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
-                  Text('${l10n.metricCropsTracked}: ${_summary?.cropsTracked ?? 0}'),
-                  Text('${l10n.metricMarketsTracked}: ${_summary?.marketsTracked ?? 0}'),
-                  Text('${l10n.metricLatestDatasetDate}: ${_summary?.latestDate ?? l10n.valueNA}'),
-                  Text('${l10n.metricBestCrop}: ${_summary?.bestCropName ?? l10n.valueUnknown}'),
+                  Text(
+                      '${l10n.metricCropsTracked}: ${_summary?.cropsTracked ?? 0}'),
+                  Text(
+                      '${l10n.metricMarketsTracked}: ${_summary?.marketsTracked ?? 0}'),
+                  Text(
+                      '${l10n.metricLatestDatasetDate}: ${_summary?.latestDate ?? l10n.valueNA}'),
+                  Text(
+                      '${l10n.metricBestCrop}: ${_summary?.bestCropName ?? l10n.valueUnknown}'),
                   const SizedBox(height: 12),
                   Text(
                     _currentLocation != null
@@ -1959,118 +1975,40 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _FarmBackdropPainter extends CustomPainter {
-  const _FarmBackdropPainter();
+  const _FarmBackdropPainter({required this.furrowColor});
+
+  final Color furrowColor;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final skyPaint = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Color(0x1AFFFFFF),
-          Color(0x00FFFFFF),
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-    canvas.drawRect(Offset.zero & size, skyPaint);
-
-    final sunPaint = Paint()..color = const Color(0x26FFD66B);
-    canvas.drawCircle(
-      Offset(size.width * 0.82, size.height * 0.12),
-      size.shortestSide * 0.18,
-      sunPaint,
-    );
-
-    final hillPaint = Paint()
-      ..color = const Color(0x332E7D32)
-      ..style = PaintingStyle.fill;
-    final hillPath = Path()
-      ..moveTo(0, size.height * 0.55)
-      ..quadraticBezierTo(
-        size.width * 0.22,
-        size.height * 0.42,
-        size.width * 0.42,
-        size.height * 0.58,
-      )
-      ..quadraticBezierTo(
-        size.width * 0.65,
-        size.height * 0.76,
-        size.width,
-        size.height * 0.54,
-      )
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-    canvas.drawPath(hillPath, hillPaint);
-
-    final contourPaint = Paint()
-      ..color = const Color(0x1FFFFFFF)
+    final furrowPaint = Paint()
+      ..color = furrowColor.withValues(alpha: 0.28)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    for (var i = 0; i < 4; i++) {
-      final y = size.height * (0.18 + i * 0.08);
-      final path = Path()
-        ..moveTo(-20, y)
-        ..quadraticBezierTo(
-          size.width * 0.25,
-          y - 12,
-          size.width * 0.5,
-          y + 6,
-        )
-        ..quadraticBezierTo(
-          size.width * 0.78,
-          y + 18,
-          size.width + 20,
-          y + 2,
-        );
-      canvas.drawPath(path, contourPaint);
-    }
+      ..strokeWidth = 1.1;
 
-    final accentPaint = Paint()..color = const Color(0x1A8F6B4F);
-    canvas.drawCircle(
-      Offset(size.width * 0.18, size.height * 0.2),
-      size.shortestSide * 0.08,
-      accentPaint,
-    );
-
-    final grainPaint = Paint()..color = const Color(0x12FFFFFF);
-    for (var x = 0.0; x < size.width; x += 18) {
-      for (var y = 0.0; y < size.height; y += 18) {
-        final bias = ((x + y) % 36) / 36.0;
-        canvas.drawCircle(
-          Offset(x + (bias * 4), y + ((1 - bias) * 2)),
-          0.7,
-          grainPaint,
-        );
-      }
-    }
-
-    final rowPaint = Paint()
-      ..color = const Color(0x1E7A4E2D)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-    for (var i = 0; i < 5; i++) {
-      final baseY = size.height * (0.58 + i * 0.065);
+    for (var row = 0; row < 5; row++) {
+      final baseY = size.height * (0.58 + row * 0.09);
       final rowPath = Path()
-        ..moveTo(-10, baseY)
+        ..moveTo(-12, baseY)
         ..quadraticBezierTo(
-          size.width * 0.22,
-          baseY - 10,
-          size.width * 0.5,
-          baseY + 2,
+          size.width * 0.28,
+          baseY - size.height * 0.08,
+          size.width * 0.56,
+          baseY,
         )
         ..quadraticBezierTo(
           size.width * 0.78,
-          baseY + 16,
-          size.width + 10,
-          baseY + 2,
+          baseY + size.height * 0.05,
+          size.width + 12,
+          baseY - size.height * 0.01,
         );
-      canvas.drawPath(rowPath, rowPaint);
+      canvas.drawPath(rowPath, furrowPaint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _FarmBackdropPainter oldDelegate) =>
+      oldDelegate.furrowColor != furrowColor;
 }
 
 class _SubtleRowTexturePainter extends CustomPainter {

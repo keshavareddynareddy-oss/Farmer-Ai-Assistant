@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "../../../../.."
+		},
+		{
+			"path": "../../../../../../Internship tasks/VOIS/Seasonal_Agriculture_Performance"
+		}
+	],
+	"settings": {
+		"java.import.exclusions": [
+			"**/frontend/android/**",
+			"**/frontend_flutter/**"
+		],
+		"java.project.resourceFilters": [
+			"**/frontend/android/**",
+			"**/frontend_flutter/**"
+		]
+	}
+}

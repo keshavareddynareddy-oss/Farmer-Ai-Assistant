@@ -1,1 +1,0 @@
-Placeholder model artifact. Replace this file by running backend_api/app/ml/train_model.py.
