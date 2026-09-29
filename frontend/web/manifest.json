@@ -1,11 +1,11 @@
 {
-    "name": "crop_price_predictor",
-    "short_name": "crop_price_predictor",
+    "name": "MandiWise: An AI-Powered Crop Price Forecasting & Market Advisory Platform",
+    "short_name": "MandiWise",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "AI-powered crop price forecasts, selling guidance, weather insights, crop tracking, and market alerts.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

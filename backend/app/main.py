@@ -47,7 +47,7 @@ from app.services.data_service import (
     refresh_dataset_from_remote,
 )
 
-app = FastAPI(title="Crop Price Predictor API", version="0.1.0")
+app = FastAPI(title="MandiWise API", version="0.1.0")
 
 create_tables()
 

@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "crop_price_predictor" "\0"
+            VALUE "FileDescription", "MandiWise" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "crop_price_predictor" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "crop_price_predictor.exe" "\0"
-            VALUE "ProductName", "crop_price_predictor" "\0"
+            VALUE "ProductName", "MandiWise" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

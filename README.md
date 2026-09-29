@@ -1,4 +1,4 @@
-# Crop Price Predictor
+# MandiWise: An AI-Powered Crop Price Forecasting & Market Advisory Platform
 
 AI-assisted crop price advisor with a FastAPI backend in `backend/` and a Flutter frontend in `frontend/`.
 
